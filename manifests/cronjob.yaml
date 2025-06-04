@@ -1,0 +1,24 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: ddns-cronjob
+  namespace: ddns
+spec:
+  schedule: "*/5 * * * *"
+  successfulJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: ddns-sa
+          containers:
+            - name: ddns-sync
+              image: intrickster/ddns:dev
+              env:
+                - name: WHITELIST_MIDDLEWARE_NAME
+                  value: private-whitelisting
+                - name: WHITELIST_TRAEFIK_NAMESPACE
+                  value: traefik
+                # - name: WHITELIST_CUSTOM_DOMAIN
+                #   value: example.com
+          restartPolicy: OnFailure

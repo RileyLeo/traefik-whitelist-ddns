@@ -1,0 +1,8 @@
+# configmap k8s
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ddns-config
+  namespace: ddns
+data:
+  public-ip: ""
