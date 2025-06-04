@@ -1,4 +1,13 @@
-# Traefik Whitelist DDNS
+# General DDNS
+
+- This is a fork of a Traefik middleware ip whitelist DDNS. I use it as a base for my own DDNS script, assisting me in managing my personal home lab DDNS.
+- No Plans to maintain or expand this script more than what I am using it for, if you want to use it, feel free to do so. :D
+
+## ENV needed + Explanation
+
+
+---
+# Keep as Ref. , from original README.md
 
 This is a simple Traefik v2 DDNS updater script, which can be used in home lab setups to synchronize the allowed IP addresses for your [IP Whitelist Middleware](https://doc.traefik.io/traefik/middlewares/http/ipwhitelist/), which allows you to configure a VPN protected setup for your applications. It also support setting a custom domain for its IP(s) to be added to the whitelist range of the middleware.
 
