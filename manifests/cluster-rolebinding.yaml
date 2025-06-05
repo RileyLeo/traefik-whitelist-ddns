@@ -8,6 +8,6 @@ subjects:
     name: ddns-sa  # Replace with your SA
     namespace: ddns         # SA must be in same namespace
 roleRef:
-  kind: Role
+  kind: ClusterRole
   name: ddns-role
   apiGroup: rbac.authorization.k8s.io

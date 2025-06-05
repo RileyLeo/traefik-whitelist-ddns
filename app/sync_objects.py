@@ -10,8 +10,8 @@ def patch_traefik_middleware (new_public_ip: str):
     
     patch_body = {
         "spec": {
-            "ipWhiteList": {
-                "sourceRange": new_public_ip
+            "ipAllowList": {
+                "sourceRange": [new_public_ip]
             }
         }
     }
@@ -20,7 +20,7 @@ def patch_traefik_middleware (new_public_ip: str):
     namespace = os.environ.get('WHITELIST_TRAEFIK_NAMESPACE', 'traefik-system')
 
     patch_resource = api.patch_namespaced_custom_object(
-        group="traefik.io/v1alpha1",
+        group="traefik.io",
         version="v1alpha1",
         name=name,
         namespace=namespace,
@@ -64,8 +64,14 @@ def patch_porkbun_A_records_dns(new_public_ip: str):
     
     for subdomain in subdomain_list:
         record_found = False
+        print(f"Checking for A records for subdomain: {subdomain} in domain: {domain}")
         for record in records:
-            if record["type"] == "A" and record["name"] == subdomain:
+            if subdomain == '@':
+                complete_domain = domain
+            else:
+                complete_domain = f'{subdomain}.{domain}'
+            if record["type"] == "A" and record["name"] == complete_domain:
+                pprint(f"Found A record for {subdomain}.{domain}")
                 record_id = record["id"]
                 edit_url = f"https://api.porkbun.com/api/json/v3/dns/edit/{domain}/{record_id}"
                 edit_payload = {
@@ -79,7 +85,7 @@ def patch_porkbun_A_records_dns(new_public_ip: str):
                 edit_response = requests.post(edit_url, json=edit_payload, headers=headers)
 
                 if edit_response.status_code == 200 and edit_response.json().get("status") == "SUCCESS":
-                    print(f"Successfully updated A record for {subdomain}.{domain} to {new_public_ip}.")
+                    print(f"Successfully updated A record for {subdomain}.{domain} to 202.186.95.111.")
                 else:
                     print(f"Failed to update A record for {subdomain}.{domain}: {edit_response.json().get('message')}")
                 record_found = True

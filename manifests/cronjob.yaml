@@ -13,12 +13,33 @@ spec:
           serviceAccountName: ddns-sa
           containers:
             - name: ddns-sync
-              image: intrickster/ddns:dev
+              image: intrickster/ddns:0.0.1-snapshot
+              imagePullPolicy: Always
               env:
+                - name: DOMAIN
+                  value: "{REPALCE_ME}"
+                - name: RESOURCES_TO_PATCH
+                  value: "traefik_middleware,cluster_config_map,porkbun_dns"
                 - name: WHITELIST_MIDDLEWARE_NAME
-                  value: private-whitelisting
+                  value: "{REPALCE_ME}"
                 - name: WHITELIST_TRAEFIK_NAMESPACE
-                  value: traefik
-                # - name: WHITELIST_CUSTOM_DOMAIN
-                #   value: example.com
+                  value: "{REPALCE_ME}"
+                - name: PORKBUN_API_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: porkbun-api-keys
+                      key: PORKBUN_API_KEY
+                - name: PORKBUN_SECRET_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: porkbun-api-keys
+                      key: PORKBUN_SECRET_API_KEY
+                - name: TTL
+                  value: "300"
+                - name: SUBDOMAIN
+                  value: "{REPALCE_ME}"
+                - name: CONFIG_MAP_NAME
+                  value: "{REPALCE_ME}"
+                - name: CONFIG_MAP_NAMESPACE
+                  value: "{REPALCE_ME}"
           restartPolicy: OnFailure

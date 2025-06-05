@@ -10,6 +10,6 @@ rules:
   - apiGroups: ["apps"]
     resources: ["deployments"]
     verbs: ["get", "patch"]
-  - apiGroups: ["traefik.containo.us"]
+  - apiGroups: ["traefik.io"]
     resources: ["middlewares"]
-    verbs: ["get", "patch"]
+    verbs: ["*"]
