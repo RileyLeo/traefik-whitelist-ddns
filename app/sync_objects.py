@@ -1,10 +1,14 @@
 import os
 import requests
 from pprint import pprint
+import json
+from datetime import datetime, timezone
 
 from kubernetes import client, config
 
 def patch_traefik_middleware (new_public_ip: str):
+    print("==========================================================")
+    print("Updating Traefik middleware with new public IP...")
     config.load_incluster_config()
     api = client.CustomObjectsApi()
     
@@ -30,8 +34,12 @@ def patch_traefik_middleware (new_public_ip: str):
 
     print("Current state of the middleware: ")
     pprint(patch_resource)
+    print("==========================================================")
     
 def patch_porkbun_A_records_dns(new_public_ip: str):
+    print("==========================================================")
+    print("Updating Porkbun A records with new public IP...")
+    
     API_KEY = os.environ.get('PORKBUN_API_KEY')
     SECRET_KEY = os.environ.get('PORKBUN_SECRET_KEY')
     domain = os.environ.get('DOMAIN')
@@ -93,36 +101,82 @@ def patch_porkbun_A_records_dns(new_public_ip: str):
 
         if not record_found:
             print(f"No A record found for {subdomain}.{domain} to update.")
+            
+    print("==========================================================")
     
 def cluster_config_map(new_public_ip: str):
+    print("==========================================================")
+    print("Updating ConfigMap with new public IP...")
     config.load_incluster_config()
     v1 = client.CoreV1Api()
     
-    config_map_name = os.environ.get('CONFIG_MAP_NAME', 'ip-config')
-    namespace = os.environ.get('CONFIG_MAP_NAMESPACE', 'default')
-    deployments_to_restart = os.environ.get('DEPLOYMENTS_TO_RESTART')
+    config_maps_to_update = json.loads(os.environ.get('CONFIG_MAPS_TO_UPDATE', '[]'))
+    if not isinstance(config_maps_to_update, list):
+        print("CONFIG_MAPS_TO_UPDATE must be a valid JSON list.")
+        return
+    deployments_to_restart = json.loads(os.environ.get('DEPLOYMENTS_TO_RESTART', '[]'))
+    # validate json format
+    if not isinstance(deployments_to_restart, list):
+        print("DEPLOYMENTS_TO_RESTART must be a valid JSON list.")
+        return
 
-    config_map = v1.read_namespaced_config_map(config_map_name, namespace)
+    if not config_maps_to_update:
+        print("No ConfigMaps specified for update.")
+        return
     
-    config_map.data['current_public_ip'] = new_public_ip
+    for config_map in config_maps_to_update:
+        config_map_name = config_map['name']
+        config_map_namespace = config_map.get('namespace', 'default')  # Default to 'default' namespace if not specified
+        config_map_key_to_update = config_map['key'] 
+        print(f"Updating ConfigMap {config_map_name} in namespace {config_map_namespace} with key {config_map_key_to_update} to new public IP: {new_public_ip}")
+        
+        try:
+            cm = v1.read_namespaced_config_map(name=config_map_name, namespace=config_map_namespace)
+            
+            cm.data[config_map_key_to_update] = new_public_ip
+            
+            v1.patch_namespaced_config_map(
+                name=config_map_name,
+                namespace=config_map_namespace,
+                body=cm
+            )
+            print(f"Updated ConfigMap {config_map_name} in namespace {config_map_namespace}.")
+        except client.ApiException as e:
+            print(f"Failed to update ConfigMap {config_map_name} in namespace {config_map_namespace}: {e}")
+            continue
+        
     
-    updated_config_map = v1.patch_namespaced_config_map(
-        name=config_map_name,
-        namespace=namespace,
-        body=config_map
-    )
+    print("Updated ConfigMap")
     
-    print("Updated ConfigMap:")
-    pprint(updated_config_map)
+    apps_v1 = client.AppsV1Api()
     
-    if deployments_to_restart is not None:
-        for deployment in deployments_to_restart.split(','):
+    if deployments_to_restart != []:
+        print(f"Deployments to restart: {deployments_to_restart}")
+        for deployment in deployments_to_restart:
+            deployment_name = deployment["name"]
+            deployment_namespace = deployment.get("namespace", "default")  # Default to 'default' namespace if not specified
+            # Patch to trigger restart
+            patch = {
+                "spec": {
+                    "template": {
+                        "metadata": {
+                            "annotations": {
+                                "kubectl.kubernetes.io/restartedAt": datetime.now(timezone.utc).isoformat()
+                            }
+                        }
+                    }
+                }
+            }
             try:
-                v1.patch_namespaced_deployment(
-                    name=deployment.strip(),
-                    namespace=namespace,
-                    body={"spec": {"template": {"metadata": {"annotations": {"kubectl.kubernetes.io/restartedAt": new_public_ip}}}}}
+                apps_v1.patch_namespaced_deployment(
+                    name=deployment_name,
+                    namespace=deployment_namespace,
+                    body=patch
                 )
-                print(f"Restarted deployment: {deployment.strip()}")
+                print(f"Successfully restarted deployment {deployment_name} in namespace {deployment_namespace}.")
             except client.ApiException as e:
                 print(f"Failed to restart deployment {deployment.strip()}: {e}")
+    else:
+        print("No deployments specified for restart.")
+    
+    print("==========================================================")

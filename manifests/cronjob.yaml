@@ -14,7 +14,8 @@ spec:
           containers:
             - name: ddns-sync
               image: intrickster/ddns:0.0.1-snapshot
-              imagePullPolicy: Always
+              # imagePullPolicy: Always #debug
+              imagePullPolicy: IfNotPresent
               env:
                 - name: DOMAIN
                   value: "{REPALCE_ME}"
@@ -38,8 +39,30 @@ spec:
                   value: "300"
                 - name: SUBDOMAIN
                   value: "{REPALCE_ME}"
-                - name: CONFIG_MAP_NAME
-                  value: "{REPALCE_ME}"
-                - name: CONFIG_MAP_NAMESPACE
-                  value: "{REPALCE_ME}"
+                - name: CONFIG_MAPS_TO_UPDATE
+                  value: |
+                    [
+                      {
+                        "name": "config_map_name_1",
+                        "namespace": "namespace_1",
+                        "key": "key_name_1",
+                      },
+                      {
+                        "name": "config_map_name_2",
+                        "namespace": "namespace_2",
+                        "key": "key_name_2",
+                      }
+                    ]
+                - name: DEPLOYMENTS_TO_RESTART
+                  value: |
+                    [
+                      {
+                        "name": "deployment_name_1",
+                        "namespace": "namespace_1"
+                      },
+                      {
+                        "name": "deployment_name_2",
+                        "namespace": "namespace_2"
+                      }
+                    ]
           restartPolicy: OnFailure
